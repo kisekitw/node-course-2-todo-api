@@ -1,11 +1,24 @@
 const expect = require('expect');
 const request = require('supertest');
-const { ObjectID } = require('mongodb');
+const {
+    ObjectID
+} = require('mongodb');
 
-const { app } = require('./../server');
-const { Todo } = require('./../models/todo');
-const { User } = require('./../models/user');
-const { todos, populateTodos, users, populateUsers } = require('./seed/seed');
+const {
+    app
+} = require('./../server');
+const {
+    Todo
+} = require('./../models/todo');
+const {
+    User
+} = require('./../models/user');
+const {
+    todos,
+    populateTodos,
+    users,
+    populateUsers
+} = require('./seed/seed');
 
 beforeEach(populateUsers);
 beforeEach(populateTodos);
@@ -29,7 +42,9 @@ describe('POST /todos', () => {
                     return done(err);
                 }
 
-                Todo.find({ text }).then((todos) => {
+                Todo.find({
+                    text
+                }).then((todos) => {
                     expect(todos.length).toBe(1);
                     expect(todos[0].text).toBe(text);
                     done();
@@ -48,12 +63,12 @@ describe('POST /todos', () => {
                 }
 
                 Todo.find().then((todos) => {
-                    expect(todos.length).toBe(2);
-                    done();
-                })
-                .catch((err) => {
-                    done(e);
-                });
+                        expect(todos.length).toBe(2);
+                        done();
+                    })
+                    .catch((err) => {
+                        done(e);
+                    });
             })
     });
 });
@@ -134,25 +149,28 @@ describe('DELETE /todos/:id', () => {
 
     it('should return 404 if object id is invalid', (done) => {
         request(app)
-        .delete('/todos/123abc')
-        .expect(404)
-        .end(done);
+            .delete('/todos/123abc')
+            .expect(404)
+            .end(done);
     });
 });
 
-describe('PATCH /todos/:id', ()=> {
-    it ('should update the todo', (done) => {
+describe('PATCH /todos/:id', () => {
+    it('should update the todo', (done) => {
         var hexId = todos[0]._id.toHexString();
         var text = 'PATCH form test';
         var completed = true;
         request(app)
             .patch(`/todos/${hexId}`)
-            .send({text, completed})
+            .send({
+                text,
+                completed
+            })
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo.text).toBe(text);
                 expect(res.body.todo.completed).toBe(true);
-                expect(typeof(res.body.todo.completedAt)).toBe('number');
+                expect(typeof (res.body.todo.completedAt)).toBe('number');
             })
             .end(done);
     });
@@ -163,7 +181,10 @@ describe('PATCH /todos/:id', ()=> {
 
         request(app)
             .patch(`/todos/${hexId}`)
-            .send({text, completed: false})
+            .send({
+                text,
+                completed: false
+            })
             .expect(200)
             .expect((res) => {
                 expect(res.body.todo.text).toBe(text);
@@ -187,15 +208,15 @@ describe('GET /users/me', () => {
             .end(done);
     });
 
-    if('should return 401 if not autheticated', (done) => {
-        request(app)
-            .get('/users/me')
-            .expect(400)
-            .expect((res) => {
-                expect(res.body).toEqual({});
-            })
-            .end(done);
-    });
+    if ('should return 401 if not autheticated', (done) => {
+            request(app)
+                .get('/users/me')
+                .expect(400)
+                .expect((res) => {
+                    expect(res.body).toEqual({});
+                })
+                .end(done);
+        });
 });
 
 describe('POST /users', (done) => {
@@ -205,7 +226,10 @@ describe('POST /users', (done) => {
 
         request(app)
             .post('/users')
-            .send({email, password})
+            .send({
+                email,
+                password
+            })
             .expect(200)
             .expect((res) => {
                 expect(res.headers['x-auth']).toBeTruthy();
@@ -217,7 +241,9 @@ describe('POST /users', (done) => {
                     return done(err);
                 }
 
-                User.findOne({ email }).then((user) => {
+                User.findOne({
+                    email
+                }).then((user) => {
                     expect(user).toBeTruthy();
                     expect(user.password).not.toBe(password);
                     done();
@@ -250,7 +276,7 @@ describe('POST /users', (done) => {
     });
 });
 
-describe('POST /users/login', (done) =>{
+describe('POST /users/login', (done) => {
     it('should login user and return auth token', (done) => {
         request(app)
             .post('/users/login')
@@ -291,14 +317,36 @@ describe('POST /users/login', (done) =>{
                 expect(res.headers(['x-auth'])).toBeFalsy();
             })
             .end((err, res) => {
-              if (err) {
-                return done(err);
-              }
+                if (err) {
+                    return done(err);
+                }
 
-              User.findById(users[1]._id).then((user) => {
-                  expect(user.tokens.length).toBe(0);
-                  done()
-              }).catch((e) => done(e));
+                User.findById(users[1]._id).then((user) => {
+                    expect(user.tokens.length).toBe(0);
+                    done()
+                }).catch((e) => done(e));
             })
+    });
+});
+
+describe('DELETE /users/me/token', () => {
+    it('should remove auth token on logout', (done) => {
+        request(app)
+            .delete('/users/me/token')
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(200)
+            .expect((res) => {
+                expect(res.headers(['x-auth'])).toBeFalsy();
+            })
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+
+                User.findById(users[0]._id).then((user) => {
+                    expect(user.tokens.length).toBe(0);
+                    done()
+                });
+            }).catch((e) => done(e));
     });
 });
